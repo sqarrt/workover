@@ -156,8 +156,7 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
                 self.data_to_show[-1] = list(self.data_to_show[-1])
                 self.data_to_show[-1][2][-1] = list(self.data_to_show[-1][2][-1])
                 self.data_to_show[-1][2][-1][0] = datetime.now()
-                self.data_to_show[-1][1] = (self.data_to_show[-1][2][-1][0] -
-                                            self.data_to_show[-1][2][-1][1]).total_seconds()/3600
+                self.data_to_show[-1][1] = sum([(a[0] - a[1]).total_seconds() / 3600 for a in self.data_to_show[-1][2]])
                 self.rb_toggled()
         except IndexError:
             pass
