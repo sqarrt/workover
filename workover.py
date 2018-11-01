@@ -22,6 +22,8 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
         self.default_long_date_mask = "%Y-%m-%d %H:%M:%S"
         self.file = os.getcwd()+"/stats.log"
         self.current_date = self.calendarWidget.selectedDate().toPyDate()
+        self.hours_per_day = 4
+        self.days_per_week = 5
 
         #start session and write down to the stats.log
         self.log('start')
@@ -95,7 +97,7 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
         end = today
         if period == "week":
             start = today - td(days = int(today.weekday()))
-            end = start + td(days = 4)
+            end = start + td(days = self.days_per_week-1)
             self.show_summaries(start, end)
             return list([(a[0].strftime(self.default_short_date_mask),
                           a[1], a[2]) for a in self.dates_and_hours if start <= a[0] <= end])
@@ -117,11 +119,12 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
             day = start + td(days = a)
             if day.weekday() not in (5, 6) and day <= self.current_date.today():
                 workdays.append(day)
-        self.required_label.setText(WorkOverApp.time_from_seconds(len(workdays)*4*3600))
+        self.required_label.setText(WorkOverApp.time_from_seconds(len(workdays)*self.hours_per_day*3600))
         seconds = sum([a[1] for a in self.data_to_show])*3600
         self.done_label.setText(str(WorkOverApp.time_from_seconds(seconds)))
-        workover = abs(seconds - len(workdays)*4*3600)
-        self.workover_label.setText(WorkOverApp.time_from_seconds(workover) if seconds - len(workdays)*4*3600 > 0
+        workover = abs(seconds - len(workdays)*self.hours_per_day*3600)
+        self.workover_label.setText(WorkOverApp.time_from_seconds(workover) if
+                                    seconds - len(workdays)*self.hours_per_day*3600 > 0
                                     else "-"+WorkOverApp.time_from_seconds(workover))
 
     def get_vlines(self):
