@@ -122,6 +122,10 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
         self.required_label.setText(WorkOverApp.time_from_seconds(len(workdays)*self.hours_per_day*3600))
         seconds = sum([a[1] for a in self.data_to_show])*3600
         self.done_label.setText(str(WorkOverApp.time_from_seconds(seconds)))
+        today_sum = [a for a in self.data_to_show if self.current_date.strftime(self.default_short_date_mask) == a[0]]
+        today_sum = today_sum[0] if len(today_sum) > 0 else (self.current_date.strftime(self.default_short_date_mask),
+                                                             0)
+        self.done_label_2.setText(WorkOverApp.time_from_seconds(today_sum[1] * 3600))
         workover = abs(seconds - len(workdays)*self.hours_per_day*3600)
         self.workover_label.setText(WorkOverApp.time_from_seconds(workover) if
                                     seconds - len(workdays)*self.hours_per_day*3600 > 0
@@ -144,7 +148,7 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
 
     def log(self, mode):
         with open(self.file, 'a') as f:
-            out = '\r\n'+mode
+            out = mode
             out = out + ','
             out = out + datetime.now().strftime(self.default_long_date_mask)
             out.replace(' ', '')
