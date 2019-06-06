@@ -3,12 +3,14 @@ import os
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QMainWindow, \
     QApplication
+from PyQt5 import QtCore
 from PyQt5 import QtGui
 import design
 from pandas import read_csv
 from datetime import timedelta as td
 from datetime import datetime
 import calendar
+import time, threading
 
 
 class WorkOverApp(QMainWindow, design.Ui_MainWindow):
@@ -22,14 +24,22 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
         self.default_long_date_mask = "%Y-%m-%d %H:%M:%S"
         self.file = os.getcwd()+"/stats.log"
         self.current_date = self.calendarWidget.selectedDate().toPyDate()
-        self.hours_per_day = 4
+        self.hours_per_day = 9
         self.days_per_week = 5
+        self.WAIT_TIME_SECONDS = 1
 
         #start session and write down to the stats.log
         self.log('start')
 
         #read the stats log
         self.data = read_csv(self.file, names = ['ind', 'datetime'])
+
+        #creating a backup
+        with open(self.file, 'r') as f:
+            content = f.readlines()
+        with open(os.getcwd() + '/backup/stats' + datetime.now().strftime('%Y%m%d%H%M%S') + '.log',
+                  'w') as f:
+            f.writelines(content)
 
         #processing self_data to array of unique dates and intervals
         self.data = [(a[0], datetime.strptime(a[1], self.default_long_date_mask))
@@ -69,11 +79,24 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
         self.per_week_rb.toggled.connect(self.rb_toggled)
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_time)
-        self.timer.start(1000)
+        self.timer.start(self.WAIT_TIME_SECONDS * 1000)
 
     #listeners' realisation
     def closeEvent(self, a0: QtGui.QCloseEvent):
-        self.log('stop')
+        pass
+        #self.log('stop')
+
+    def keyPressEvent(self, e):
+        if e.key() == QtCore.Qt.Key_Escape:
+            if self.timer.isActive():
+                self.timer.stop()
+                self.plot.canvas.ax.set_facecolor("#c697a0")
+                self.plot_data()
+            else:
+                self.timer.start(self.WAIT_TIME_SECONDS * 1000)
+                self.log(mode='start')
+                self.plot.canvas.ax.set_facecolor('w')
+                self.plot_data()
 
     def date_changed(self):
         self.current_date = self.calendarWidget.selectedDate().toPyDate()
@@ -159,11 +182,19 @@ class WorkOverApp(QMainWindow, design.Ui_MainWindow):
             if self.data_to_show[-1][2][0][0].date() == self.current_date.today():
                 self.data_to_show[-1] = list(self.data_to_show[-1])
                 self.data_to_show[-1][2][-1] = list(self.data_to_show[-1][2][-1])
-                self.data_to_show[-1][2][-1][0] = datetime.now()
+                self.data_to_show[-1][2][-1][0] = self.data_to_show[-1][2][-1][0] + td(seconds = self.WAIT_TIME_SECONDS)
                 self.data_to_show[-1][1] = sum([(a[0] - a[1]).total_seconds() / 3600 for a in self.data_to_show[-1][2]])
                 self.rb_toggled()
         except IndexError:
             pass
+        with open(self.file, 'r') as f:
+            content = f.readlines()
+        last = content[-1]
+        if last.split(',')[0] == 'stop':
+            content = content[:-1]
+        with open(self.file, 'w') as f:
+            f.writelines(content)
+        self.log(mode = 'stop')
 
     def plot_data(self):
         self.prepare_axes()
